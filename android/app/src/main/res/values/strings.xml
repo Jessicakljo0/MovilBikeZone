@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">movilbikezone</string>
+
+    <string name="facebook_app_id">1394047982273691</string>
+
+    <string name="facebook_client_token">TU_CLIENT_TOKEN_REAL</string>
+
+    <string name="fb_login_protocol_scheme">fb1394047982273691</string>
+</resources>

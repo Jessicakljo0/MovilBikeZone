@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "968088917481",
+    "project_id": "bikezone-app",
+    "storage_bucket": "bikezone-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:968088917481:android:ceb44d08fd75a6c7c22778",
+        "android_client_info": {
+          "package_name": "com.example.movilbikezone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "968088917481-kuck4839q04jn48l0r8k34hsgb2nqquv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.movilbikezone",
+            "certificate_hash": "919a865a2c121abba4cf3d8d250bc45bf94b7cb7"
+          }
+        },
+        {
+          "client_id": "968088917481-rn5dlq4rhbomd3i4puv8dibo2hrtfafm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAefpWPm4yC_c6zRWRPtN3XsnicCLdsE6M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "968088917481-rn5dlq4rhbomd3i4puv8dibo2hrtfafm.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "968088917481-g9eq86ukdotn9ta8b8ch15h2cq57govl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.movilbikezone"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
