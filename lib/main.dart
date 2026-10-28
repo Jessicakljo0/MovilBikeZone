@@ -93,7 +93,24 @@ class BikeZoneApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const WelcomePage(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.lime)));
+          }
+          if (!snapshot.hasData) return const WelcomePage();
+          return FutureBuilder<String>(
+            future: UserStore.role(),
+            builder: (context, roleSnapshot) {
+              if (!roleSnapshot.hasData) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.lime)));
+              }
+              return roleSnapshot.data == 'admin' ? const AdminPage() : const MainPage();
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -198,6 +215,9 @@ class UserStore {
     required String name,
     required String phone,
   }) async {
+    if (!RegExp(r'^\d{10}$').hasMatch(phone.trim())) {
+      throw FormatException('El teléfono debe contener exactamente 10 dígitos.');
+    }
     final user = _auth.currentUser;
     if (user == null) {
       throw FirebaseAuthException(
@@ -221,6 +241,18 @@ class UserStore {
       );
     }
 
+    final existing = await _db.collection('reservas')
+        .where('uidUsuario', isEqualTo: user.uid).get();
+    final repeated = existing.docs.any((doc) {
+      final data = doc.data();
+      return data['estado'] == 'Activa' &&
+          data['bike'] == record.bike &&
+          data['station'] == record.station &&
+          data['date'] == record.date &&
+          data['hours'] == record.hours &&
+          (data['quantity'] ?? 1) == record.quantity;
+    });
+    if (repeated) throw StateError('Ya tienes una reserva activa idéntica.');
     await _db.collection('reservas').add({
       'uidUsuario': user.uid,
       'correoUsuario': user.email ?? '',
@@ -230,7 +262,48 @@ class UserStore {
     });
   }
 
+  static Future<void> finishReservation(String reservationId) async {
+    final user = _auth.currentUser;
+
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'Debes iniciar sesión.',
+      );
+    }
+
+    final reservationRef =
+        _db.collection('reservas').doc(reservationId);
+
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(reservationRef);
+
+      if (!snapshot.exists) {
+        throw Exception('La reservación no existe.');
+      }
+
+      final data = snapshot.data()!;
+
+      if (data['uidUsuario'] != user.uid) {
+        throw Exception(
+          'No tienes permiso para modificar esta reservación.',
+        );
+      }
+
+      if (data['estado'] != 'Activa') {
+        throw Exception('Esta reservación ya no está activa.');
+      }
+
+      transaction.update(reservationRef, {
+        'estado': 'Finalizada',
+        'fechaFinalizacion': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  // Finaliza una reserva y almacena el recorrido de forma atómica.
   static Future<void> saveRide({
+    required String reservationId,
     required String bike,
     required String station,
     required DateTime startedAt,
@@ -239,26 +312,53 @@ class UserStore {
     required double averageSpeedKmh,
   }) async {
     final user = _auth.currentUser;
+    if (user == null) throw StateError('Inicia sesión para guardar el recorrido.');
+    final reservationRef = _db.collection('reservas').doc(reservationId);
+    final rideRef = _db.collection('recorridos').doc();
+    await _db.runTransaction((transaction) async {
+      final snap = await transaction.get(reservationRef);
+      if (!snap.exists || snap.data()?['uidUsuario'] != user.uid) {
+        throw StateError('Reservación inexistente o sin permiso.');
+      }
+      if (snap.data()?['estado'] != 'Activa') {
+        throw StateError('La reservación ya no está activa.');
+      }
+      transaction.set(rideRef, {
+        'uidUsuario': user.uid,
+        'correoUsuario': user.email ?? '',
+        'reservaId': reservationId,
+        'bicicleta': bike,
+        'estacion': station,
+        'fechaInicio': Timestamp.fromDate(startedAt),
+        'fechaFin': FieldValue.serverTimestamp(),
+        'tiempoSegundos': elapsedSeconds,
+        'distanciaKm': double.parse(distanceKm.toStringAsFixed(3)),
+        'velocidadPromedioKmh': double.parse(averageSpeedKmh.toStringAsFixed(2)),
+        'estado': 'Finalizado',
+      });
+      transaction.update(reservationRef, {
+        'estado': 'Finalizada',
+        'fechaFinalizacion': FieldValue.serverTimestamp(),
+      });
+    });
+  }
 
-    if (user == null) {
-      throw FirebaseAuthException(
-        code: 'not-authenticated',
-        message: 'Debes iniciar sesión para guardar un recorrido.',
-      );
-    }
-
-    await _db.collection('recorridos').add({
-      'uidUsuario': user.uid,
-      'correoUsuario': user.email ?? '',
-      'bicicleta': bike,
-      'estacion': station,
-      'fechaInicio': Timestamp.fromDate(startedAt),
-      'fechaFin': FieldValue.serverTimestamp(),
-      'tiempoSegundos': elapsedSeconds,
-      'distanciaKm': double.parse(distanceKm.toStringAsFixed(3)),
-      'velocidadPromedioKmh':
-          double.parse(averageSpeedKmh.toStringAsFixed(2)),
-      'estado': 'Finalizado',
+  static Future<void> cancelReservation(String reservationId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Inicia sesión.');
+    final ref = _db.collection('reservas').doc(reservationId);
+    await _db.runTransaction((transaction) async {
+      final snap = await transaction.get(ref);
+      if (!snap.exists || snap.data()?['uidUsuario'] != user.uid) {
+        throw StateError('No tienes permiso para cancelar esta reserva.');
+      }
+      if (snap.data()?['estado'] != 'Activa') {
+        throw StateError('Solo se pueden cancelar reservaciones activas.');
+      }
+      transaction.update(ref, {
+        'estado': 'Cancelada',
+        'fechaCancelacion': FieldValue.serverTimestamp(),
+      });
     });
   }
 
@@ -280,8 +380,13 @@ class UserStore {
       });
 
     return docs
-        .map((doc) => ReservationRecord.fromJson(doc.data()))
-        .toList();
+    .map(
+      (doc) => ReservationRecord.fromJson(
+        doc.data(),
+        id: doc.id,
+      ),
+    )
+    .toList();
   }
 
   static Future<String> role() async {
@@ -336,19 +441,26 @@ class UserStore {
   }
 }
 
+
 class ReservationRecord {
+  final String? id;
   final String bike;
   final String station;
   final int hours;
   final int price;
   final String date;
+  final String status;
+  final int quantity;
 
   const ReservationRecord({
+    this.id,
     required this.bike,
     required this.station,
     required this.hours,
     required this.price,
     required this.date,
+    this.status = 'Activa',
+    this.quantity = 1,
   });
 
   Map<String, dynamic> toJson() => {
@@ -357,15 +469,22 @@ class ReservationRecord {
         'hours': hours,
         'price': price,
         'date': date,
+        'quantity': quantity,
       };
 
-  factory ReservationRecord.fromJson(Map<String, dynamic> json) {
+  factory ReservationRecord.fromJson(
+    Map<String, dynamic> json, {
+    String? id,
+  }) {
     return ReservationRecord(
+      id: id,
       bike: json['bike'] as String? ?? '',
       station: json['station'] as String? ?? '',
-      hours: json['hours'] as int? ?? 1,
-      price: json['price'] as int? ?? 25,
+      hours: (json['hours'] as num?)?.toInt() ?? 1,
+      price: (json['price'] as num?)?.toInt() ?? 25,
       date: json['date'] as String? ?? '',
+      status: json['estado'] as String? ?? 'Activa',
+      quantity: (json['quantity'] as num?)?.toInt() ?? 1,
     );
   }
 }
@@ -1036,7 +1155,7 @@ class RouteService {
               distanceKm:
                   ((route['distance'] as num?)?.toDouble() ?? 0) / 1000,
               durationMinutes:
-                  ((route['duration'] as num?)?.toDouble() ?? 0) / 60,
+                  (((route['distance'] as num?)?.toDouble() ?? 0) / 1000) / 15 * 60,
             );
           }
         }
@@ -1117,6 +1236,34 @@ class BikeOption {
 
   const BikeOption(this.name, this.image, this.available);
 }
+
+
+class DemoBikeInventory {
+  static const List<String> models = [
+    'Bicicleta Alubike MTB',
+    'Bicicleta 29 Cannondale',
+    'Bicicleta Trail Cube',
+    'Bicicleta Eléctrica Verde',
+    'Bicicleta Alubike Pro',
+    'Bicicleta Cannondale Sport',
+  ];
+
+  static int availableFor({
+    required Station station,
+    required String model,
+  }) {
+    final index = models.indexOf(model);
+
+    if (index == -1) return 0;
+
+    final total = station.bikes;
+    final base = total ~/ models.length;
+    final extra = total % models.length;
+
+    return base + (index < extra ? 1 : 0);
+  }
+}
+
 
 class BikeCard extends StatelessWidget {
   final BikeOption bike;

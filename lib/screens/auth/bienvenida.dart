@@ -71,6 +71,18 @@ class WelcomePage extends StatelessWidget {
                       fadeRoute(const LoginPage()),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(context, fadeRoute(const LoginPage(initialProvider: 'google'))),
+                      icon: const Icon(Icons.g_mobiledata), label: const Text('Google'),
+                    )),
+                    const SizedBox(width: 8),
+                    Expanded(child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(context, fadeRoute(const LoginPage(initialProvider: 'facebook'))),
+                      icon: const Icon(Icons.facebook), label: const Text('Facebook'),
+                    )),
+                  ]),
                   const SizedBox(height: 13),
                   SizedBox(
                     width: double.infinity,

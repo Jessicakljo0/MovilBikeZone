@@ -18,10 +18,22 @@ class ReservationPage extends StatefulWidget {
 
 class _ReservationPageState extends State<ReservationPage> {
   int hours = 2;
+  int quantity = 1;
+  DateTime selectedDate = DateTime.now();
+  bool saving = false;
   late Station selectedStation;
 
   int get hourlyRate => widget.type == 'Eléctrica' ? 45 : 25;
-  int get price => hours * hourlyRate;
+  int get price => hours * hourlyRate * quantity;
+int get maxBikes => DemoBikeInventory.availableFor(
+  station: selectedStation,
+  model: widget.bike.name,
+);
+  Future<void> pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 180)), initialDate: selectedDate.isBefore(now) ? now : selectedDate);
+    if (picked != null && mounted) setState(() => selectedDate = picked);
+  }
 
   @override
   void initState() {
@@ -56,52 +68,37 @@ class _ReservationPageState extends State<ReservationPage> {
   }
 
   Future<void> confirm() async {
-    final now = DateTime.now();
-    final date =
-        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-
-    await UserStore.saveReservation(
-      ReservationRecord(
-        bike: widget.bike.name,
-        station: selectedStation.name,
-        hours: hours,
-        price: price,
-        date: date,
-      ),
-    );
-
-    if (!mounted) return;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.card,
-        icon: const Icon(
-          Icons.check_circle,
-          color: AppColors.lime,
-          size: 50,
-        ),
+    if (saving) return;
+   if (maxBikes <= 0 || quantity > maxBikes) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cantidad no disponible en esta estación.')));
+      return;
+    }
+    final date = '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
+    final ok = await showDialog<bool>(context: context, builder: (c) => AlertDialog(
+      title: const Text('Confirma tu reservación'),
+      content: Text('${widget.bike.name}\n$quantity bicicleta(s)\n$hours hora(s)\n$date\n${selectedStation.name}\n\$$price MXN'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Volver')),
+        TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Confirmar')),
+      ],
+    ));
+    if (ok != true || !mounted) return;
+    setState(() => saving = true);
+    try {
+      await UserStore.saveReservation(ReservationRecord(
+        bike: widget.bike.name, station: selectedStation.name,
+        hours: hours, price: price, date: date, quantity: quantity,
+      ));
+      if (!mounted) return;
+      await showDialog<void>(context: context, builder: (c) => AlertDialog(
         title: const Text('Reserva confirmada'),
-        content: Text(
-          '${widget.bike.name}\n'
-          '$hours ${hours == 1 ? 'hora' : 'horas'}\n'
-          '\$$price MXN\n'
-          '${selectedStation.name}',
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              'Aceptar',
-              style: TextStyle(color: AppColors.lime),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (mounted) Navigator.pop(context);
+        content: Text('${widget.bike.name}\n$quantity bicicleta(s)\n$date'),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Aceptar'))],
+      ));
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo reservar: $e')));
+    } finally { if (mounted) setState(() => saving = false); }
   }
 
   @override
@@ -280,18 +277,51 @@ class _ReservationPageState extends State<ReservationPage> {
                       final station = _reservationStations().firstWhere(
                         (item) => item.name == value,
                       );
-                      setState(() => selectedStation = station);
+                      setState(() {selectedStation = station; if (quantity > maxBikes) {quantity = maxBikes > 0 ? maxBikes : 1;}
+});
                     },
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 18),
+            ListTile(
+              title: const Text('Fecha de reservación'),
+              subtitle: Text('${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+              trailing: const Icon(Icons.calendar_month, color: AppColors.lime),
+              onTap: pickDate,
+            ),
+            
+Row(
+  children: [
+    const Expanded(
+      child: Text('Cantidad de bicicletas:'),
+    ),
+    IconButton(
+      icon: const Icon(Icons.remove_circle_outline),
+      onPressed: quantity > 1
+          ? () => setState(() => quantity--)
+          : null,
+    ),
+    Text(
+      '$quantity',
+      style: const TextStyle(fontSize: 20),
+    ),
+    IconButton(
+      icon: const Icon(Icons.add_circle_outline),
+      onPressed: quantity < maxBikes
+          ? () => setState(() => quantity++)
+          : null,
+    ),
+  ],
+),
+
             const SizedBox(height: 31),
             Center(
               child: AppButton(
                 text: 'CONFIRMAR RESERVA',
                 width: 255,
-                onPressed: confirm,
+                onPressed: saving ? null : confirm,
               ),
             ),
           ],

@@ -114,6 +114,7 @@ class _HomePageState extends State<HomePage>
   }
 
   void openStation(Station station) {
+    mapController?.animateCamera(CameraUpdate.newLatLngZoom(station.point, 16.5));
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.card,
@@ -168,7 +169,7 @@ class _HomePageState extends State<HomePage>
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => search(),
             decoration: InputDecoration(
-              hintText: 'Buscar lugar o ruta, ejemplo: Dios Padre',
+              hintText: 'Buscar: Barrio de Jesús, Ixmiquilpan, Hidalgo',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: searching
                   ? const Padding(

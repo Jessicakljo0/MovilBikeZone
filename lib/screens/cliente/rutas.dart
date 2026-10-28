@@ -351,7 +351,7 @@ class _RoutesPageState extends State<RoutesPage> {
           if (routeReady) ...[
             const SizedBox(height: 6),
             Text(
-              'Tiempo estimado: ${durationMinutes.ceil()} min',
+              'Tiempo estimado en bicicleta: ${durationMinutes.ceil()} min (aprox.)',
               style: const TextStyle(color: AppColors.muted, fontSize: 12),
             ),
           ],

@@ -3,11 +3,13 @@ part of '../../main.dart';
 class ActiveRidePage extends StatefulWidget {
   final String bike;
   final String station;
+  final String reservationId;
 
   const ActiveRidePage({
     super.key,
     required this.bike,
     required this.station,
+    required this.reservationId,
   });
 
   @override
@@ -134,6 +136,7 @@ class _ActiveRidePageState extends State<ActiveRidePage> {
 
     try {
       await UserStore.saveRide(
+        reservationId: widget.reservationId,
         bike: widget.bike,
         station: widget.station,
         startedAt: startedAt,

@@ -1,7 +1,8 @@
 part of '../../main.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final String? initialProvider;
+  const LoginPage({super.key, this.initialProvider});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -13,6 +14,16 @@ class _LoginPageState extends State<LoginPage> {
   final password = TextEditingController();
   bool obscure = true;
   bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.initialProvider == 'google') loginGoogle();
+      if (widget.initialProvider == 'facebook') loginFacebook();
+    });
+  }
 
   @override
   void dispose() {

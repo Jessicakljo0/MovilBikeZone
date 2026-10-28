@@ -18,6 +18,11 @@ class _MainPageState extends State<MainPage> {
   late int index;
   Station? selectedStation;
 
+  void goToHome() {
+    if (!mounted) return;
+    setState(() => index = 0);
+  }
+
   @override
   void initState() {
     super.initState();
