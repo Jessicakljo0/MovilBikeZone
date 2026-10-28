@@ -174,18 +174,30 @@ class _HomePageState extends State<HomePage>
               hintText: 'Buscar: Barrio de Jesús, Ixmiquilpan, Hidalgo',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: searching
-                  ? const Padding(
-                      padding: EdgeInsets.all(13),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : IconButton(
-                      onPressed: search,
-                      icon: const Icon(Icons.arrow_forward),
-                    ),
+    ? const Padding(
+        padding: EdgeInsets.all(13),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      )
+    : IconButton(
+        tooltip: 'Limpiar búsqueda',
+        onPressed: () {
+          setState(() {
+            searchController.clear();
+            searchedPoint = null;
+            searchedName = null;
+            center = diosPadreCenter;
+          });
+
+          mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(diosPadreCenter, 14.2),
+          );
+        },
+        icon: const Icon(Icons.clear),
+      ),
             ),
           ),
           const SizedBox(height: 10),
