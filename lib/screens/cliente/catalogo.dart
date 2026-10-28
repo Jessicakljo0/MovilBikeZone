@@ -21,6 +21,13 @@ class CatalogPage extends StatelessWidget {
       BikeOption('Bicicleta Cannondale Sport', AppAssets.bikeRed, true),
     ];
 
+    final filteredBikes = bikes.where((bike) {
+      final name = bike.name.toLowerCase();
+      if (type == 'Eléctrica') return name.contains('eléctrica');
+      if (type == 'Montaña') return !name.contains('eléctrica') && (name.contains('mtb') || name.contains('trail') || name.contains('29'));
+      return !name.contains('eléctrica') && (name.contains('pro') || name.contains('sport'));
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.background,
@@ -36,10 +43,10 @@ class CatalogPage extends StatelessWidget {
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(18),
-        itemCount: bikes.length,
+        itemCount: filteredBikes.length,
         separatorBuilder: (_, __) => const SizedBox(height: 11),
         itemBuilder: (context, index) {
-          final bike = bikes[index];
+          final bike = filteredBikes[index];
           return BikeCard(
             bike: bike,
             onTap: bike.available

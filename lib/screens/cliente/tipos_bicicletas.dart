@@ -10,7 +10,7 @@ class BikeTypesContent extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       children: [
-        const PageTitle('TIPOS DE BICICLETAS'),
+        Row(children: [IconButton(onPressed: () { final state = context.findAncestorStateOfType<_MainPageState>(); state?.goToHome(); }, icon: const Icon(Icons.arrow_back, color: AppColors.lime)), const Expanded(child: PageTitle('TIPOS DE BICICLETAS'))]),
         const SizedBox(height: 8),
         Text(
           'Estación: ${station.name}',
@@ -46,4 +46,3 @@ class BikeTypesContent extends StatelessWidget {
     );
   }
 }
-

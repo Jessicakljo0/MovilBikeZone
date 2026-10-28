@@ -99,7 +99,11 @@ class _RoutesPageState extends State<RoutesPage> {
     final query = originController.text.trim();
     if (query.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Escribe el lugar de origen.')),
+        const SnackBar(
+  content: Text(
+    'Escribe el lugar de origen para poder buscar tu ruta.',
+  ),
+),
       );
       return;
     }
@@ -351,7 +355,7 @@ class _RoutesPageState extends State<RoutesPage> {
           if (routeReady) ...[
             const SizedBox(height: 6),
             Text(
-              'Tiempo estimado: ${durationMinutes.ceil()} min',
+              'Tiempo estimado en bicicleta: ${durationMinutes.ceil()} min (aprox.)',
               style: const TextStyle(color: AppColors.muted, fontSize: 12),
             ),
           ],

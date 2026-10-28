@@ -48,7 +48,9 @@ class _HomePageState extends State<HomePage>
     if (place == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No se encontró "$query". Prueba agregando ciudad o estado.'),
+          content: Text(
+  'No se encontró "$query". Intenta escribir el nombre completo y agrega el municipio y estado.',
+),
         ),
       );
       return;
@@ -114,6 +116,7 @@ class _HomePageState extends State<HomePage>
   }
 
   void openStation(Station station) {
+    mapController?.animateCamera(CameraUpdate.newLatLngZoom(station.point, 16.5));
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.card,
@@ -168,21 +171,33 @@ class _HomePageState extends State<HomePage>
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => search(),
             decoration: InputDecoration(
-              hintText: 'Buscar lugar o ruta, ejemplo: Dios Padre',
+              hintText: 'Buscar: Barrio de Jesús, Ixmiquilpan, Hidalgo',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: searching
-                  ? const Padding(
-                      padding: EdgeInsets.all(13),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : IconButton(
-                      onPressed: search,
-                      icon: const Icon(Icons.arrow_forward),
-                    ),
+    ? const Padding(
+        padding: EdgeInsets.all(13),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      )
+    : IconButton(
+        tooltip: 'Limpiar búsqueda',
+        onPressed: () {
+          setState(() {
+            searchController.clear();
+            searchedPoint = null;
+            searchedName = null;
+            center = diosPadreCenter;
+          });
+
+          mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(diosPadreCenter, 14.2),
+          );
+        },
+        icon: const Icon(Icons.clear),
+      ),
             ),
           ),
           const SizedBox(height: 10),
