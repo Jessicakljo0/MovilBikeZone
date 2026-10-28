@@ -48,7 +48,9 @@ class _HomePageState extends State<HomePage>
     if (place == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No se encontró "$query". Prueba agregando ciudad o estado.'),
+          content: Text(
+  'No se encontró "$query". Intenta escribir el nombre completo y agrega el municipio y estado.',
+),
         ),
       );
       return;
