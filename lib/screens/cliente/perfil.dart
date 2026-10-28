@@ -65,15 +65,25 @@ class _ProfilePageState extends State<ProfilePage>
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 load();
-              } catch (e) {
-                if (!dialogContext.mounted) return;
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(
-                    content: Text('No se pudo actualizar el perfil: $e'),
-                    backgroundColor: AppColors.red,
-                  ),
-                );
-              }
+             } on FormatException catch (e) {
+  if (!dialogContext.mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(e.message),
+      backgroundColor: AppColors.red,
+    ),
+  );
+} catch (e) {
+  if (!dialogContext.mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('No se pudo actualizar el perfil. Intenta nuevamente.'),
+      backgroundColor: AppColors.red,
+    ),
+  );
+}
             },
             child: const Text(
               'Guardar',
